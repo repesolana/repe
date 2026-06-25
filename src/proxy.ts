@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server"
 
 // Middleware disabled for local development without database
 // Enable this when PostgreSQL is running by uncommenting the auth-based middleware below
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   return NextResponse.next()
 }
 
