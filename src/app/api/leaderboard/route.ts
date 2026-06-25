@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   const page = parseInt(request.nextUrl.searchParams.get("page") || "1")
   const search = request.nextUrl.searchParams.get("search") || ""
 
-  // Try reading from pre-computed cache (set by cron)
+  // Try cron-generated cache first (set every 6h)
   if (!search) {
     const cached = await getCache<{ entries: RankedEntry[]; page: number; totalPages: number }>(`leaderboard:page:${page}`)
     if (cached) {
@@ -32,9 +32,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // If search is active, or cache miss — query with search support
-  // Use getCached with short TTL for search queries
-  const cacheKey = `leaderboard:search:${period}:${page}:${search}`
+  // Cache miss — query DB and cache for 5 minutes
+  const cacheKey = `leaderboard:live:${period}:${page}:${search}`
 
   const data = await getCached(
     cacheKey,
@@ -122,7 +121,7 @@ export async function GET(request: NextRequest) {
 
       return { entries, page, totalPages, userRank }
     },
-    30
+    300
   )
 
   return NextResponse.json(data)
