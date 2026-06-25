@@ -1,0 +1,378 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== USER & AUTH ====================
+
+model User {
+  id            String    @id @default(cuid())
+  walletAddress String    @unique
+  username      String?   @unique
+  email         String?   @unique
+  avatarUrl     String?
+  role          UserRole  @default(USER)
+
+  // Social connections
+  xHandle         String?
+  xId             String?
+  telegramHandle  String?
+  telegramId      String?
+  discordHandle   String?
+  discordId       String?
+  youtubeHandle   String?
+  tiktokHandle    String?
+  instagramHandle String?
+  redditHandle    String?
+
+  // Stats
+  totalRepeEarned Int       @default(0)
+  currentBalance  Int       @default(0)
+  totalPoints     Int       @default(0)
+  loginStreak     Int       @default(0)
+  longestStreak   Int       @default(0)
+  lastLoginDate   DateTime?
+  lastDailyClaim  DateTime?
+
+  // Referral
+  referralCode String  @unique @default(cuid())
+  referredById String?
+  referredBy   User?   @relation("Referrals", fields: [referredById], references: [id])
+  referrals    User[]  @relation("Referrals")
+
+  // Anti-fraud
+  isBanned  Boolean  @default(false)
+  banReason String?
+  riskScore Int      @default(0)
+
+  // Relations
+  taskCompletions TaskCompletion[]
+  rewardHistory   RewardHistory[]
+  achievements    UserAchievement[]
+  notifications   Notification[]
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  onboardedAt DateTime?
+
+  @@index([totalRepeEarned])
+  @@index([totalPoints])
+  @@index([referralCode])
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+model VerificationNonce {
+  id        String   @id @default(cuid())
+  nonce     String   @unique
+  wallet    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([wallet])
+}
+
+// ==================== CAMPAIGNS & TASKS ====================
+
+model Campaign {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String?
+  status      CampaignStatus @default(DRAFT)
+  startDate   DateTime?
+  endDate     DateTime?
+  totalBudget Int            @default(0)
+  spentBudget Int            @default(0)
+
+  tasks Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+model Task {
+  id         String    @id @default(cuid())
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+
+  title        String
+  description  String
+  instructions String?
+  imageUrl     String?
+
+  type     TaskType
+  category TaskCategory
+  platform SocialPlatform?
+
+  rewardAmount       Int
+  maxCompletions     Int?
+  currentCompletions Int  @default(0)
+
+  verificationMethod VerificationMethod
+  verificationUrl    String?
+  verificationData   Json?
+
+  status          TaskStatus       @default(ACTIVE)
+  priority        Int              @default(0)
+  isRecurring     Boolean          @default(false)
+  recurringPeriod RecurringPeriod?
+  startDate       DateTime?
+  endDate         DateTime?
+
+  minLevel      Int      @default(0)
+  requiredTasks String[]
+
+  completions TaskCompletion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, category])
+  @@index([type, status])
+}
+
+enum TaskType {
+  SOCIAL
+  CONTENT
+  COMMUNITY
+  ONCHAIN
+  QUIZ
+  REFERRAL
+  DAILY
+  CUSTOM
+}
+
+enum TaskCategory {
+  TWITTER
+  TELEGRAM
+  DISCORD
+  YOUTUBE
+  TIKTOK
+  INSTAGRAM
+  REDDIT
+  ONCHAIN
+  COMMUNITY
+  OTHER
+}
+
+enum SocialPlatform {
+  TWITTER
+  TELEGRAM
+  DISCORD
+  YOUTUBE
+  TIKTOK
+  INSTAGRAM
+  REDDIT
+}
+
+enum VerificationMethod {
+  AUTOMATIC
+  MANUAL
+  PROOF_UPLOAD
+  LINK_SUBMIT
+  ONCHAIN
+  SELF_REPORT
+}
+
+enum TaskStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  EXPIRED
+}
+
+enum RecurringPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+model TaskCompletion {
+  id     String @id @default(cuid())
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  status       CompletionStatus @default(PENDING)
+  proofUrl     String?
+  proofData    Json?
+  rewardAmount Int
+
+  reviewedById String?
+  reviewNote   String?
+  reviewedAt   DateTime?
+
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([taskId, userId])
+  @@index([userId, status])
+  @@index([taskId, status])
+}
+
+enum CompletionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+// ==================== REWARDS ====================
+
+model RewardHistory {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  amount      Int
+  type        RewardType
+  source      String?
+  description String?
+
+  txSignature String?
+  claimed     Boolean   @default(false)
+  claimedAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([type])
+}
+
+enum RewardType {
+  TASK_COMPLETION
+  DAILY_BONUS
+  REFERRAL_BONUS
+  REFERRAL_MILESTONE
+  STREAK_BONUS
+  ACHIEVEMENT
+  ADMIN_GRANT
+  PENALTY
+}
+
+// ==================== ACHIEVEMENTS ====================
+
+model Achievement {
+  id          String              @id @default(cuid())
+  name        String
+  description String
+  imageUrl    String?
+  category    AchievementCategory
+
+  criteria     Json
+  rewardAmount Int @default(0)
+
+  users UserAchievement[]
+
+  createdAt DateTime @default(now())
+}
+
+enum AchievementCategory {
+  TASKS
+  STREAK
+  REFERRAL
+  SOCIAL
+  MILESTONE
+  SPECIAL
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+
+  unlockedAt DateTime @default(now())
+
+  @@unique([userId, achievementId])
+}
+
+// ==================== LEADERBOARD ====================
+
+model LeaderboardSnapshot {
+  id        String            @id @default(cuid())
+  period    LeaderboardPeriod
+  startDate DateTime
+  endDate   DateTime
+  data      Json
+
+  createdAt DateTime @default(now())
+
+  @@index([period, startDate])
+}
+
+enum LeaderboardPeriod {
+  WEEKLY
+  MONTHLY
+  ALL_TIME
+}
+
+// ==================== NOTIFICATIONS ====================
+
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  title   String
+  message String
+  type    NotificationType
+  data    Json?
+  read    Boolean          @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, read, createdAt])
+}
+
+enum NotificationType {
+  REWARD_EARNED
+  TASK_APPROVED
+  TASK_REJECTED
+  ACHIEVEMENT_UNLOCKED
+  REFERRAL_JOINED
+  SYSTEM
+  ADMIN
+}
+
+// ==================== ANTI-FRAUD ====================
+
+model FraudLog {
+  id            String  @id @default(cuid())
+  userId        String?
+  walletAddress String?
+  ipAddress     String?
+  action        String
+  reason        String
+  severity      Int     @default(1)
+  metadata      Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([walletAddress])
+}
