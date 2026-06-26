@@ -11,6 +11,7 @@ interface Task {
   description: string
   category: string
   rewardAmount: number
+  verificationUrl?: string | null
   completionStatus?: string | null
 }
 
@@ -59,6 +60,7 @@ export function ActiveTasks({ tasks, onCompleteTask }: ActiveTasksProps) {
                 description={task.description}
                 category={task.category}
                 rewardAmount={task.rewardAmount}
+                actionUrl={task.verificationUrl}
                 status="available"
                 onComplete={onCompleteTask}
               />

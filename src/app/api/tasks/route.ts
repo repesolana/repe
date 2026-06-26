@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
     platform: task.platform,
     rewardAmount: task.rewardAmount,
     verificationMethod: task.verificationMethod,
+    verificationUrl: task.verificationUrl,
     status: task.status,
     completionStatus: task.completions?.[0]?.status || null,
     completedAt: task.completions?.[0]?.completedAt || null,

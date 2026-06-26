@@ -9,6 +9,7 @@ import {
   Globe,
   CheckCircle2,
   Clock,
+  ExternalLink,
   ArrowRight,
   Flame,
 } from "lucide-react"
@@ -35,6 +36,7 @@ interface TaskCardProps {
   description: string
   category: string
   rewardAmount: number
+  actionUrl?: string | null
   status?: "available" | "pending" | "completed"
   onComplete?: (id: string) => void
 }
@@ -45,10 +47,18 @@ export function TaskCard({
   description,
   category,
   rewardAmount,
+  actionUrl,
   status = "available",
   onComplete,
 }: TaskCardProps) {
   const Icon = platformIcons[category] || Globe
+
+  const handleClick = () => {
+    if (actionUrl) {
+      window.open(actionUrl, "_blank", "noopener,noreferrer")
+    }
+    onComplete?.(id)
+  }
 
   return (
     <motion.div
@@ -102,10 +112,10 @@ export function TaskCard({
         {status === "available" && (
           <Button
             size="sm"
-            onClick={() => onComplete?.(id)}
-            className="bg-repe-red/10 text-repe-red hover:bg-repe-red hover:text-white border-0"
+            onClick={handleClick}
+            className="bg-repe-red/10 text-repe-red hover:bg-repe-red hover:text-white border-0 gap-1"
           >
-            <ArrowRight className="h-4 w-4" />
+            {actionUrl ? <ExternalLink className="h-3.5 w-3.5" /> : <ArrowRight className="h-4 w-4" />}
           </Button>
         )}
         {status === "completed" && (

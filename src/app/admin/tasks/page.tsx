@@ -19,12 +19,13 @@ interface Task {
   rewardAmount: number
   status: string
   verificationMethod: string
+  verificationUrl: string | null
   _count: { completions: number }
 }
 
 const EMPTY_FORM = {
   title: "", description: "", type: "SOCIAL", category: "TWITTER", platform: "",
-  rewardAmount: 100, verificationMethod: "SELF_REPORT", status: "ACTIVE", priority: 0,
+  rewardAmount: 100, verificationMethod: "SELF_REPORT", verificationUrl: "", status: "ACTIVE", priority: 0,
 }
 
 export default function AdminTasksPage() {
@@ -66,7 +67,7 @@ export default function AdminTasksPage() {
     setForm({
       title: task.title, description: task.description, type: task.type,
       category: task.category, platform: "", rewardAmount: task.rewardAmount,
-      verificationMethod: task.verificationMethod, status: task.status, priority: 0,
+      verificationMethod: task.verificationMethod, verificationUrl: task.verificationUrl || "", status: task.status, priority: 0,
     })
     setEditId(task.id)
     setShowForm(true)
@@ -125,6 +126,10 @@ export default function AdminTasksPage() {
               <select value={form.verificationMethod} onChange={(e) => setForm({ ...form, verificationMethod: e.target.value })} className="w-full h-9 rounded-md bg-repe-black border border-border px-3 text-sm">
                 {["AUTOMATIC","MANUAL","SELF_REPORT","PROOF_UPLOAD","LINK_SUBMIT"].map(v => <option key={v} value={v}>{v}</option>)}
               </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-xs font-medium mb-1 block">Action URL (link for user to complete task)</label>
+              <Input value={form.verificationUrl} onChange={(e) => setForm({ ...form, verificationUrl: e.target.value })} placeholder="https://x.com/REPE or https://t.me/repe" className="bg-repe-black border-border" />
             </div>
             <div>
               <label className="text-xs font-medium mb-1 block">Status</label>
