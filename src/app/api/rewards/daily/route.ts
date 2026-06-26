@@ -5,13 +5,10 @@ import { DAILY_BONUS_AMOUNT, STREAK_BONUS_MULTIPLIER } from "@/lib/constants"
 
 export async function POST() {
   const session = await auth()
-  let targetUserId = session?.user?.id
+  const targetUserId = session?.user?.id
 
-  // If no session, use the first demo user
   if (!targetUserId) {
-    const demoUser = await prisma.user.findFirst({ orderBy: { totalPoints: "desc" } })
-    if (!demoUser) return NextResponse.json({ error: "No user" }, { status: 404 })
-    targetUserId = demoUser.id
+    return NextResponse.json({ error: "Please connect your wallet first" }, { status: 401 })
   }
 
   const user = await prisma.user.findUnique({

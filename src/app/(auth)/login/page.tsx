@@ -1,20 +1,36 @@
 "use client"
 
 import Image from "next/image"
-import { Wallet, Shield, Zap, Users } from "lucide-react"
+import { Shield, Zap, Users, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { GlassCard } from "@/components/shared/glass-card"
+import { useWallet } from "@solana/wallet-adapter-react"
+import { useWalletModal } from "@solana/wallet-adapter-react-ui"
+import { useWalletAuth } from "@/hooks/use-wallet-auth"
+import { useEffect } from "react"
 
 export default function LoginPage() {
+  const { setVisible } = useWalletModal()
+  const { connected, wallet } = useWallet()
+  const { authenticate, loading, error } = useWalletAuth()
+
+  useEffect(() => {
+    if (connected) {
+      authenticate()
+    }
+  }, [connected, authenticate])
+
+  const handleConnect = () => {
+    setVisible(true)
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
-      {/* Background effects */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,45,45,0.1),transparent_50%)]" />
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-repe-red/5 rounded-full blur-3xl" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-repe-dark-red/5 rounded-full blur-3xl" />
 
       <div className="relative z-10 w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-4">
             <div className="relative">
@@ -30,50 +46,34 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Connect Wallet Card */}
         <GlassCard variant="accent" className="mb-6">
           <h2 className="text-lg font-semibold mb-4 text-center">Connect Wallet</h2>
-          <div className="space-y-3">
+
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex flex-col items-center py-6 gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-repe-red" />
+              <p className="text-sm text-muted-foreground">Verifying wallet...</p>
+            </div>
+          ) : (
             <Button
-              className="w-full h-12 bg-repe-gray hover:bg-repe-light-gray border border-border justify-start gap-3 text-foreground"
-              variant="outline"
+              onClick={handleConnect}
+              className="w-full h-14 bg-gradient-to-r from-repe-red to-repe-dark-red hover:from-repe-red/90 hover:to-repe-dark-red/90 text-white font-semibold text-base"
             >
-              <div className="h-7 w-7 rounded-full bg-purple-500/20 flex items-center justify-center">
-                <Wallet className="h-4 w-4 text-purple-400" />
-              </div>
-              Phantom
+              {connected ? "Signing in..." : "Connect Solana Wallet"}
             </Button>
-            <Button
-              className="w-full h-12 bg-repe-gray hover:bg-repe-light-gray border border-border justify-start gap-3 text-foreground"
-              variant="outline"
-            >
-              <div className="h-7 w-7 rounded-full bg-orange-500/20 flex items-center justify-center">
-                <Wallet className="h-4 w-4 text-orange-400" />
-              </div>
-              Solflare
-            </Button>
-            <Button
-              className="w-full h-12 bg-repe-gray hover:bg-repe-light-gray border border-border justify-start gap-3 text-foreground"
-              variant="outline"
-            >
-              <div className="h-7 w-7 rounded-full bg-red-500/20 flex items-center justify-center">
-                <Wallet className="h-4 w-4 text-red-400" />
-              </div>
-              Backpack
-            </Button>
-            <Button
-              className="w-full h-12 bg-repe-gray hover:bg-repe-light-gray border border-border justify-start gap-3 text-foreground"
-              variant="outline"
-            >
-              <div className="h-7 w-7 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <Wallet className="h-4 w-4 text-blue-400" />
-              </div>
-              Trust Wallet
-            </Button>
-          </div>
+          )}
+
+          <p className="text-xs text-muted-foreground text-center mt-4">
+            Supports Phantom, Solflare, Backpack, Trust Wallet
+          </p>
         </GlassCard>
 
-        {/* Features */}
         <div className="grid grid-cols-3 gap-3">
           <div className="glass-card p-3 text-center">
             <Zap className="h-5 w-5 mx-auto mb-1 text-repe-red" />

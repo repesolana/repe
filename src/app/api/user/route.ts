@@ -1,51 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth"
+import { getActiveUserId } from "@/lib/demo-user"
 
 export async function GET() {
-  const session = await auth()
-
-  if (!session?.user?.id) {
-    // Return first demo user when not authenticated
-    const demoUser = await prisma.user.findFirst({
-      orderBy: { totalPoints: "desc" },
-      select: {
-        id: true,
-        walletAddress: true,
-        username: true,
-        email: true,
-        avatarUrl: true,
-        role: true,
-        xHandle: true,
-        telegramHandle: true,
-        discordHandle: true,
-        youtubeHandle: true,
-        tiktokHandle: true,
-        instagramHandle: true,
-        redditHandle: true,
-        totalRepeEarned: true,
-        currentBalance: true,
-        totalPoints: true,
-        loginStreak: true,
-        longestStreak: true,
-        lastDailyClaim: true,
-        referralCode: true,
-        createdAt: true,
-        onboardedAt: true,
-        _count: {
-          select: {
-            taskCompletions: { where: { status: "APPROVED" } },
-            referrals: true,
-          },
-        },
-      },
-    })
-    if (demoUser) return NextResponse.json(demoUser)
-    return NextResponse.json({ error: "No users found" }, { status: 404 })
+  const userId = await getActiveUserId()
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: userId },
     select: {
       id: true,
       walletAddress: true,
@@ -86,7 +50,6 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
-  const { getActiveUserId } = await import("@/lib/demo-user")
   const userId = await getActiveUserId()
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

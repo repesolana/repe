@@ -2,11 +2,12 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react"
+import { ArrowRight, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { GlassCard } from "@/components/shared/glass-card"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 const STEPS = [
   { title: "Username & Email", description: "Set up your basic profile" },
@@ -17,6 +18,7 @@ const STEPS = [
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(0)
+  const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -49,12 +51,33 @@ export default function OnboardingPage() {
     }
   }
 
+  const handleComplete = async () => {
+    setSubmitting(true)
+    try {
+      const res = await fetch("/api/user/onboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      })
+      if (res.ok) {
+        toast.success("Welcome to REPE! +100 REPE")
+        window.location.href = "/"
+      } else {
+        const err = await res.json()
+        toast.error(err.error || "Something went wrong")
+      }
+    } catch {
+      toast.error("Connection error")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,45,45,0.08),transparent_50%)]" />
 
       <div className="relative z-10 w-full max-w-lg">
-        {/* Header */}
         <div className="text-center mb-8">
           <Image src="/images/logo.png" alt="REPE" width={48} height={48} className="mx-auto mb-3 rounded-full" />
           <h1 className="text-2xl font-bold font-[family-name:var(--font-display)]">
@@ -65,7 +88,6 @@ export default function OnboardingPage() {
           </p>
         </div>
 
-        {/* Progress */}
         <div className="flex gap-2 mb-6">
           {STEPS.map((_, i) => (
             <div
@@ -78,7 +100,6 @@ export default function OnboardingPage() {
           ))}
         </div>
 
-        {/* Step Content */}
         <GlassCard variant="accent">
           <h2 className="text-lg font-semibold mb-1">{STEPS[step].title}</h2>
           <p className="text-sm text-muted-foreground mb-6">{STEPS[step].description}</p>
@@ -186,7 +207,6 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Navigation */}
           <div className="flex justify-between mt-6">
             <Button
               variant="outline"
@@ -206,8 +226,17 @@ export default function OnboardingPage() {
                 Next <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             ) : (
-              <Button className="bg-gradient-to-r from-repe-red to-repe-dark-red hover:from-repe-red/90 hover:to-repe-dark-red/90">
-                <CheckCircle2 className="h-4 w-4 mr-1" /> Complete Setup
+              <Button
+                onClick={handleComplete}
+                disabled={submitting}
+                className="bg-gradient-to-r from-repe-red to-repe-dark-red hover:from-repe-red/90 hover:to-repe-dark-red/90"
+              >
+                {submitting ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                )}
+                Complete Setup
               </Button>
             )}
           </div>

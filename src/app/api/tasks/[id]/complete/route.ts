@@ -8,12 +8,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth()
-  let userId = session?.user?.id
+  const userId = session?.user?.id
 
   if (!userId) {
-    const demoUser = await prisma.user.findFirst({ orderBy: { totalPoints: "desc" } })
-    if (!demoUser) return NextResponse.json({ error: "No user" }, { status: 404 })
-    userId = demoUser.id
+    return NextResponse.json({ error: "Please connect your wallet first" }, { status: 401 })
   }
 
   const { id: taskId } = await params

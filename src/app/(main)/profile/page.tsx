@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import {
   User,
   Wallet,
@@ -8,7 +9,6 @@ import {
   Trophy,
   Flame,
   Target,
-  Users,
   Zap,
   AtSign,
   MessageCircle,
@@ -19,144 +19,225 @@ import {
   Globe,
   CheckCircle2,
   Link2,
+  LogOut,
 } from "lucide-react"
 import { GlassCard } from "@/components/shared/glass-card"
 import { AnimatedCounter } from "@/components/shared/animated-counter"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { formatNumber, shortenAddress } from "@/lib/utils"
+import { Input } from "@/components/ui/input"
+import { LoadingSpinner } from "@/components/shared/loading-spinner"
+import { shortenAddress } from "@/lib/utils"
+import { signOut } from "next-auth/react"
+import { toast } from "sonner"
+
+interface UserData {
+  id: string
+  walletAddress: string
+  username: string | null
+  email: string | null
+  xHandle: string | null
+  telegramHandle: string | null
+  discordHandle: string | null
+  youtubeHandle: string | null
+  tiktokHandle: string | null
+  instagramHandle: string | null
+  redditHandle: string | null
+  totalRepeEarned: number
+  currentBalance: number
+  totalPoints: number
+  loginStreak: number
+  longestStreak: number
+  createdAt: string
+  _count: { taskCompletions: number; referrals: number }
+}
 
 const SOCIALS = [
-  { platform: "X (Twitter)", handle: "@repe_user", icon: AtSign, connected: true },
-  { platform: "Telegram", handle: "@repe_user", icon: MessageCircle, connected: true },
-  { platform: "Discord", handle: "repe_user#1234", icon: Hash, connected: true },
-  { platform: "YouTube", handle: null, icon: Video, connected: false },
-  { platform: "TikTok", handle: null, icon: Music2, connected: false },
-  { platform: "Instagram", handle: null, icon: Camera, connected: false },
-  { platform: "Reddit", handle: null, icon: Globe, connected: false },
-]
-
-const BADGES = [
-  { name: "Early Adopter", description: "Joined in the first week", unlocked: true },
-  { name: "Social Butterfly", description: "Connected all social accounts", unlocked: false },
-  { name: "Streak Master", description: "30-day login streak", unlocked: true },
-  { name: "Referral King", description: "Referred 10+ friends", unlocked: false },
-  { name: "Task Hunter", description: "Completed 50 tasks", unlocked: true },
-  { name: "Top 100", description: "Reached top 100 on leaderboard", unlocked: true },
+  { key: "twitter", platform: "X (Twitter)", field: "xHandle", icon: AtSign },
+  { key: "telegram", platform: "Telegram", field: "telegramHandle", icon: MessageCircle },
+  { key: "discord", platform: "Discord", field: "discordHandle", icon: Hash },
+  { key: "youtube", platform: "YouTube", field: "youtubeHandle", icon: Video },
+  { key: "tiktok", platform: "TikTok", field: "tiktokHandle", icon: Music2 },
+  { key: "instagram", platform: "Instagram", field: "instagramHandle", icon: Camera },
+  { key: "reddit", platform: "Reddit", field: "redditHandle", icon: Globe },
 ]
 
 export default function ProfilePage() {
+  const [user, setUser] = useState<UserData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [editingPlatform, setEditingPlatform] = useState<string | null>(null)
+  const [handleInput, setHandleInput] = useState("")
+
+  const fetchUser = () => {
+    fetch("/api/user")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setUser(d))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { fetchUser() }, [])
+
+  const handleConnectSocial = async (platform: string) => {
+    if (!handleInput.trim()) return
+    const res = await fetch("/api/user/social", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ platform, handle: handleInput.trim() }),
+    })
+    if (res.ok) {
+      toast.success(`${platform} connected!`)
+      setEditingPlatform(null)
+      setHandleInput("")
+      fetchUser()
+    } else {
+      toast.error("Failed to connect")
+    }
+  }
+
+  const handleDisconnect = async (platform: string) => {
+    const res = await fetch(`/api/user/social?platform=${platform}`, { method: "DELETE" })
+    if (res.ok) {
+      toast.success(`${platform} disconnected`)
+      fetchUser()
+    }
+  }
+
+  if (loading) return <LoadingSpinner className="py-20" size="lg" />
+  if (!user) return null
+
   return (
     <div className="max-w-4xl">
-      <h1 className="text-2xl font-bold mb-6 font-[family-name:var(--font-display)]">
-        Profile
-      </h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold font-[family-name:var(--font-display)]">Profile</h1>
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-border text-destructive"
+          onClick={() => signOut({ callbackUrl: "/login" })}
+        >
+          <LogOut className="h-4 w-4 mr-1" /> Logout
+        </Button>
+      </div>
 
-      {/* User Info */}
       <GlassCard variant="accent" className="mb-6">
         <div className="flex items-start gap-4">
           <Avatar className="h-16 w-16 border-2 border-repe-red/30">
             <AvatarFallback className="bg-repe-gray text-lg font-bold">
-              R
+              {(user.username || "?").charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h2 className="text-xl font-bold">RepeUser</h2>
+            <h2 className="text-xl font-bold">{user.username || "Anonymous"}</h2>
             <div className="flex flex-wrap gap-3 mt-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Wallet className="h-3.5 w-3.5" />
-                {shortenAddress("8xK2nQpVYmR7tHjLkWf5sNpZdGcAeB3uX9vMqYrTmNp4")}
+                {shortenAddress(user.walletAddress)}
               </span>
-              <span className="flex items-center gap-1">
-                <Mail className="h-3.5 w-3.5" />
-                user@example.com
-              </span>
+              {user.email && (
+                <span className="flex items-center gap-1">
+                  <Mail className="h-3.5 w-3.5" />
+                  {user.email}
+                </span>
+              )}
               <span className="flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" />
-                Joined Dec 2024
+                Joined {new Date(user.createdAt).toLocaleDateString()}
               </span>
             </div>
           </div>
         </div>
       </GlassCard>
 
-      {/* Stats Grid */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
         <GlassCard className="text-center">
           <Flame className="h-5 w-5 mx-auto mb-2 text-repe-red" />
-          <AnimatedCounter value={150250} className="text-lg font-bold block" />
+          <AnimatedCounter value={user.totalRepeEarned} className="text-lg font-bold block" />
           <p className="text-xs text-muted-foreground mt-1">Total REPE</p>
         </GlassCard>
         <GlassCard className="text-center">
           <Trophy className="h-5 w-5 mx-auto mb-2 text-yellow-500" />
-          <p className="text-lg font-bold">#43</p>
+          <p className="text-lg font-bold">#{user.totalPoints > 0 ? "—" : "—"}</p>
           <p className="text-xs text-muted-foreground mt-1">Current Rank</p>
         </GlassCard>
         <GlassCard className="text-center">
           <Target className="h-5 w-5 mx-auto mb-2 text-blue-400" />
-          <AnimatedCounter value={82} className="text-lg font-bold block" />
+          <AnimatedCounter value={user._count.taskCompletions} className="text-lg font-bold block" />
           <p className="text-xs text-muted-foreground mt-1">Tasks Done</p>
         </GlassCard>
         <GlassCard className="text-center">
           <Zap className="h-5 w-5 mx-auto mb-2 text-green-400" />
-          <p className="text-lg font-bold">35 Days</p>
+          <p className="text-lg font-bold">{user.loginStreak} Days</p>
           <p className="text-xs text-muted-foreground mt-1">Login Streak</p>
         </GlassCard>
       </div>
 
-      {/* Social Connections */}
       <h2 className="text-lg font-bold mb-4 font-[family-name:var(--font-display)]">
         Social Connections
       </h2>
       <div className="grid gap-3 sm:grid-cols-2 mb-6">
-        {SOCIALS.map((social) => (
-          <GlassCard key={social.platform} className="!p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <social.icon className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">{social.platform}</p>
-                {social.handle && (
-                  <p className="text-xs text-muted-foreground">{social.handle}</p>
+        {SOCIALS.map((social) => {
+          const handle = (user as any)[social.field] as string | null
+          const isEditing = editingPlatform === social.key
+
+          return (
+            <GlassCard key={social.key} className="!p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <social.icon className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">{social.platform}</p>
+                    {handle && <p className="text-xs text-muted-foreground">{handle}</p>}
+                  </div>
+                </div>
+                {handle ? (
+                  <Badge
+                    className="bg-success/10 text-success border-0 cursor-pointer hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => handleDisconnect(social.key)}
+                  >
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Connected
+                  </Badge>
+                ) : isEditing ? null : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-border text-xs"
+                    onClick={() => { setEditingPlatform(social.key); setHandleInput("") }}
+                  >
+                    <Link2 className="h-3 w-3 mr-1" /> Connect
+                  </Button>
                 )}
               </div>
-            </div>
-            {social.connected ? (
-              <Badge className="bg-success/10 text-success border-0">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Connected
-              </Badge>
-            ) : (
-              <Button size="sm" variant="outline" className="border-border text-xs">
-                <Link2 className="h-3 w-3 mr-1" />
-                Connect
-              </Button>
-            )}
-          </GlassCard>
-        ))}
-      </div>
-
-      {/* Achievements */}
-      <h2 className="text-lg font-bold mb-4 font-[family-name:var(--font-display)]">
-        Achievement Badges
-      </h2>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {BADGES.map((badge) => (
-          <GlassCard
-            key={badge.name}
-            className={`!p-4 ${!badge.unlocked ? "opacity-40" : ""}`}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                badge.unlocked ? "bg-repe-red/10" : "bg-repe-gray"
-              }`}>
-                <Trophy className={`h-4 w-4 ${badge.unlocked ? "text-repe-red" : "text-muted-foreground"}`} />
-              </div>
-              <span className="text-sm font-semibold">{badge.name}</span>
-            </div>
-            <p className="text-xs text-muted-foreground ml-10">{badge.description}</p>
-          </GlassCard>
-        ))}
+              {isEditing && (
+                <div className="flex gap-2 mt-3">
+                  <Input
+                    value={handleInput}
+                    onChange={(e) => setHandleInput(e.target.value)}
+                    placeholder={`@your${social.key}`}
+                    className="bg-repe-black border-border text-sm"
+                    onKeyDown={(e) => e.key === "Enter" && handleConnectSocial(social.key)}
+                  />
+                  <Button
+                    size="sm"
+                    className="bg-repe-red hover:bg-repe-red/90"
+                    onClick={() => handleConnectSocial(social.key)}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setEditingPlatform(null)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </GlassCard>
+          )
+        })}
       </div>
     </div>
   )
