@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { ArrowRight, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react"
@@ -18,6 +18,14 @@ const STEPS = [
 ]
 
 export default function OnboardingPage() {
+  return (
+    <Suspense>
+      <OnboardingForm />
+    </Suspense>
+  )
+}
+
+function OnboardingForm() {
   const searchParams = useSearchParams()
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
