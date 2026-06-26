@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { ArrowRight, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -17,6 +18,7 @@ const STEPS = [
 ]
 
 export default function OnboardingPage() {
+  const searchParams = useSearchParams()
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
@@ -31,6 +33,13 @@ export default function OnboardingPage() {
     redditHandle: "",
     referralCode: "",
   })
+
+  useEffect(() => {
+    const ref = searchParams.get("ref")
+    if (ref) {
+      setFormData((prev) => ({ ...prev, referralCode: ref }))
+    }
+  }, [searchParams])
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))

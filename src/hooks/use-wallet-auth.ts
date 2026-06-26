@@ -45,7 +45,9 @@ export function useWalletAuth() {
         return false
       }
 
-      window.location.href = "/onboarding"
+      const urlParams = new URLSearchParams(window.location.search)
+      const ref = urlParams.get("ref")
+      window.location.href = ref ? `/onboarding?ref=${ref}` : "/onboarding"
       return true
     } catch (err: any) {
       setError(err?.message || "Authentication failed")

@@ -112,8 +112,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (dbUser) {
             token.walletAddress = dbUser.walletAddress
             token.username = dbUser.username
-            token.role = dbUser.role
             token.onboarded = !!dbUser.onboardedAt
+
+            const adminWallets = (process.env.ADMIN_WALLETS || "").split(",").map(w => w.trim()).filter(Boolean)
+            if (adminWallets.includes(dbUser.walletAddress) && dbUser.role !== "ADMIN") {
+              await prisma.user.update({ where: { id: dbUser.id }, data: { role: "ADMIN" } })
+              token.role = "ADMIN"
+            } else {
+              token.role = dbUser.role
+            }
           }
         } catch {
           // Database unavailable — skip user enrichment
