@@ -22,8 +22,11 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url))
   }
 
-  if (isAdminPage && (session as any)?.role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/", req.url))
+  if (isAdminPage) {
+    const token = session as any
+    if (token?.role !== "ADMIN") {
+      return NextResponse.redirect(new URL("/", req.url))
+    }
   }
 
   return NextResponse.next()

@@ -59,9 +59,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           })
 
           if (!user) {
+            const adminWallets = (process.env.ADMIN_WALLETS || "").split(",").map(w => w.trim()).filter(Boolean)
+            const isAdmin = adminWallets.includes(wallet)
             user = await prisma.user.create({
-              data: { walletAddress: wallet },
+              data: {
+                walletAddress: wallet,
+                role: isAdmin ? "ADMIN" : "USER",
+              },
             })
+          } else {
+            const adminWallets = (process.env.ADMIN_WALLETS || "").split(",").map(w => w.trim()).filter(Boolean)
+            if (adminWallets.includes(wallet) && user.role !== "ADMIN") {
+              user = await prisma.user.update({
+                where: { id: user.id },
+                data: { role: "ADMIN" },
+              })
+            }
           }
 
           if (user.isBanned) return null
