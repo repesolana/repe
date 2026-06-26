@@ -45,6 +45,15 @@ export function useWalletAuth() {
         return false
       }
 
+      const userRes = await fetch("/api/user")
+      if (userRes.ok) {
+        const userData = await userRes.json()
+        if (userData.onboardedAt) {
+          window.location.href = "/"
+          return true
+        }
+      }
+
       const urlParams = new URLSearchParams(window.location.search)
       const ref = urlParams.get("ref")
       window.location.href = ref ? `/onboarding?ref=${ref}` : "/onboarding"

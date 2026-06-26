@@ -24,19 +24,29 @@ interface UserData {
   _count: { taskCompletions: number; referrals: number }
 }
 
+interface LeaderboardData {
+  userRank: number | null
+}
+
 export default function MainHomePage() {
   const [user, setUser] = useState<UserData | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
+  const [rank, setRank] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   const fetchData = async () => {
     try {
-      const [tasksRes, userRes] = await Promise.all([
+      const [tasksRes, userRes, lbRes] = await Promise.all([
         fetch("/api/tasks"),
         fetch("/api/user"),
+        fetch("/api/leaderboard?period=all-time&page=1"),
       ])
       if (tasksRes.ok) setTasks(await tasksRes.json())
       if (userRes.ok) setUser(await userRes.json())
+      if (lbRes.ok) {
+        const lb = await lbRes.json()
+        if (lb.userRank) setRank(lb.userRank)
+      }
     } catch {
       // API not available - use fallback
     } finally {
@@ -94,7 +104,7 @@ export default function MainHomePage() {
     <div className="max-w-4xl">
       <HeroSection
         balance={user?.currentBalance || 0}
-        rank={1}
+        rank={rank || 0}
         streak={user?.loginStreak || 0}
         canClaimDaily={canClaimDaily}
         onClaimDaily={handleClaimDaily}
