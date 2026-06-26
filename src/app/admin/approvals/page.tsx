@@ -1,78 +1,97 @@
 "use client"
 
-import { CheckCircle2, XCircle, ExternalLink, Clock } from "lucide-react"
+import { useEffect, useState } from "react"
+import { CheckCircle2, XCircle, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { GlassCard } from "@/components/shared/glass-card"
 import { Badge } from "@/components/ui/badge"
+import { LoadingSpinner } from "@/components/shared/loading-spinner"
+import { shortenAddress } from "@/lib/utils"
 import { toast } from "sonner"
 
-const DEMO_APPROVALS = [
-  { id: "1", user: "CryptoKing", task: "Write Thread about REPE", reward: 1000, proofUrl: "https://x.com/...", submittedAt: "10 min ago" },
-  { id: "2", user: "SolanaFan42", task: "YouTube Video Review", reward: 2000, proofUrl: "https://youtube.com/...", submittedAt: "25 min ago" },
-  { id: "3", user: "MoonBoy", task: "Instagram Story", reward: 500, proofUrl: "https://instagram.com/...", submittedAt: "1 hour ago" },
-  { id: "4", user: "WhaleTrader", task: "Write Thread about REPE", reward: 1000, proofUrl: "https://x.com/...", submittedAt: "2 hours ago" },
-]
+interface Approval {
+  id: string
+  rewardAmount: number
+  proofUrl: string | null
+  createdAt: string
+  task: { title: string; rewardAmount: number }
+  user: { username: string | null; walletAddress: string }
+}
 
 export default function ApprovalsPage() {
-  const handleApprove = (id: string) => {
-    toast.success("Task approved and reward distributed")
+  const [items, setItems] = useState<Approval[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchApprovals = () => {
+    fetch("/api/admin/approvals")
+      .then((r) => r.ok ? r.json() : [])
+      .then(setItems)
+      .finally(() => setLoading(false))
   }
 
-  const handleReject = (id: string) => {
-    toast.error("Task submission rejected")
+  useEffect(() => { fetchApprovals() }, [])
+
+  const handleAction = async (id: string, action: "approve" | "reject") => {
+    const res = await fetch(`/api/admin/approvals/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    })
+    if (res.ok) {
+      toast.success(action === "approve" ? "Approved!" : "Rejected")
+      fetchApprovals()
+    }
   }
+
+  if (loading) return <LoadingSpinner className="py-20" size="lg" />
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold font-[family-name:var(--font-display)]">
-          Pending Approvals
-        </h1>
+        <h1 className="text-2xl font-bold font-[family-name:var(--font-display)]">Pending Approvals</h1>
         <Badge className="bg-yellow-500/10 text-yellow-500 border-0">
-          <Clock className="h-3 w-3 mr-1" />
-          {DEMO_APPROVALS.length} pending
+          <Clock className="h-3 w-3 mr-1" />{items.length} pending
         </Badge>
       </div>
 
-      <div className="space-y-4">
-        {DEMO_APPROVALS.map((item) => (
-          <GlassCard key={item.id} className="!p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-semibold">{item.task}</h3>
-                <p className="text-sm text-muted-foreground">by {item.user}</p>
-                <p className="text-xs text-muted-foreground mt-1">Submitted: {item.submittedAt}</p>
+      {items.length === 0 ? (
+        <GlassCard className="text-center py-12">
+          <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-success" />
+          <p className="text-muted-foreground">No pending approvals</p>
+        </GlassCard>
+      ) : (
+        <div className="space-y-4">
+          {items.map((item) => (
+            <GlassCard key={item.id} className="!p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-semibold">{item.task.title}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    by {item.user.username || shortenAddress(item.user.walletAddress)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date(item.createdAt).toLocaleString()}
+                  </p>
+                  {item.proofUrl && (
+                    <a href={item.proofUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-repe-red underline mt-1 block">
+                      View Proof
+                    </a>
+                  )}
+                </div>
+                <span className="text-lg font-bold text-repe-red">+{item.rewardAmount} REPE</span>
               </div>
-              <div className="text-right">
-                <span className="text-lg font-bold text-repe-red">+{item.reward} REPE</span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-              <Button variant="outline" size="sm" className="border-border text-xs">
-                <ExternalLink className="h-3 w-3 mr-1" /> View Proof
-              </Button>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-destructive/20 text-destructive hover:bg-destructive/10"
-                  onClick={() => handleReject(item.id)}
-                >
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-border">
+                <Button size="sm" variant="outline" className="border-destructive/20 text-destructive" onClick={() => handleAction(item.id, "reject")}>
                   <XCircle className="h-4 w-4 mr-1" /> Reject
                 </Button>
-                <Button
-                  size="sm"
-                  className="bg-success hover:bg-success/90 text-white"
-                  onClick={() => handleApprove(item.id)}
-                >
+                <Button size="sm" className="bg-success hover:bg-success/90 text-white" onClick={() => handleAction(item.id, "approve")}>
                   <CheckCircle2 className="h-4 w-4 mr-1" /> Approve
                 </Button>
               </div>
-            </div>
-          </GlassCard>
-        ))}
-      </div>
+            </GlassCard>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
