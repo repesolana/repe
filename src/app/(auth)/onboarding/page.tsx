@@ -12,9 +12,7 @@ import { toast } from "sonner"
 
 const STEPS = [
   { title: "Username & Email", description: "Set up your basic profile" },
-  { title: "Connect X (Twitter)", description: "Required for social tasks" },
-  { title: "Connect Telegram", description: "Required for community access" },
-  { title: "Additional Socials", description: "Optional platforms" },
+  { title: "Connect Socials", description: "Required for task verification" },
 ]
 
 export default function OnboardingPage() {
@@ -34,11 +32,6 @@ function OnboardingForm() {
     email: "",
     xHandle: "",
     telegramHandle: "",
-    discordHandle: "",
-    youtubeHandle: "",
-    tiktokHandle: "",
-    instagramHandle: "",
-    redditHandle: "",
     referralCode: "",
   })
 
@@ -58,11 +51,7 @@ function OnboardingForm() {
       case 0:
         return formData.username.length >= 3 && formData.email.includes("@")
       case 1:
-        return formData.xHandle.length > 0
-      case 2:
-        return formData.telegramHandle.length > 0
-      case 3:
-        return true
+        return formData.xHandle.length > 0 && formData.telegramHandle.length > 0
       default:
         return false
     }
@@ -157,70 +146,28 @@ function OnboardingForm() {
           )}
 
           {step === 1 && (
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">X (Twitter) Handle</label>
-              <Input
-                value={formData.xHandle}
-                onChange={(e) => updateField("xHandle", e.target.value)}
-                placeholder="@yourhandle"
-                className="bg-repe-black border-border"
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                We&apos;ll verify your handle for social task rewards.
-              </p>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Telegram Username</label>
-              <Input
-                value={formData.telegramHandle}
-                onChange={(e) => updateField("telegramHandle", e.target.value)}
-                placeholder="@yourtelegram"
-                className="bg-repe-black border-border"
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                Required to verify Telegram community tasks.
-              </p>
-            </div>
-          )}
-
-          {step === 3 && (
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">
-                  Discord <span className="text-muted-foreground">(optional)</span>
-                </label>
+                <label className="text-sm font-medium mb-1.5 block">X (Twitter) Handle</label>
                 <Input
-                  value={formData.discordHandle}
-                  onChange={(e) => updateField("discordHandle", e.target.value)}
-                  placeholder="username#1234"
+                  value={formData.xHandle}
+                  onChange={(e) => updateField("xHandle", e.target.value)}
+                  placeholder="@yourhandle"
                   className="bg-repe-black border-border"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">
-                  YouTube <span className="text-muted-foreground">(optional)</span>
-                </label>
+                <label className="text-sm font-medium mb-1.5 block">Telegram Username</label>
                 <Input
-                  value={formData.youtubeHandle}
-                  onChange={(e) => updateField("youtubeHandle", e.target.value)}
-                  placeholder="@yourchannel"
+                  value={formData.telegramHandle}
+                  onChange={(e) => updateField("telegramHandle", e.target.value)}
+                  placeholder="@yourtelegram"
                   className="bg-repe-black border-border"
                 />
               </div>
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">
-                  TikTok <span className="text-muted-foreground">(optional)</span>
-                </label>
-                <Input
-                  value={formData.tiktokHandle}
-                  onChange={(e) => updateField("tiktokHandle", e.target.value)}
-                  placeholder="@yourtiktok"
-                  className="bg-repe-black border-border"
-                />
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Required to verify social tasks and earn REPE rewards.
+              </p>
             </div>
           )}
 
@@ -245,7 +192,7 @@ function OnboardingForm() {
             ) : (
               <Button
                 onClick={handleComplete}
-                disabled={submitting}
+                disabled={submitting || !canAdvance()}
                 className="bg-gradient-to-r from-repe-red to-repe-dark-red hover:from-repe-red/90 hover:to-repe-dark-red/90"
               >
                 {submitting ? (
